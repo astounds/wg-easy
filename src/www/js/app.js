@@ -39,7 +39,9 @@ new Vue({
     clientEditName: null,
     clientEditNameId: null,
     clientEditAddress: null,
+    clientEditAddress6: null,
     clientEditAddressId: null,
+    clientEditAddressId6: null,
     qrcode: null,
 
     currentRelease: null,
@@ -238,6 +240,11 @@ new Vue({
     },
     updateClientAddress(client, address) {
       this.api.updateClientAddress({ clientId: client.id, address })
+        .catch((err) => alert(err.message || err.toString()))
+        .finally(() => this.refresh().catch(console.error));
+    },
+    updateClientaddress6(client, address6) {
+      this.api.updateClientaddress6({ clientId: client.id, address6 })
         .catch((err) => alert(err.message || err.toString()))
         .finally(() => this.refresh().catch(console.error));
     },
