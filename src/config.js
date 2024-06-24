@@ -14,6 +14,7 @@ module.exports.WG_HOST = process.env.WG_HOST;
 module.exports.WG_PORT = process.env.WG_PORT || '51820';
 module.exports.WG_CONFIG_PORT = process.env.WG_CONFIG_PORT || process.env.WG_PORT || '51820';
 module.exports.WG_MTU = process.env.WG_MTU || null;
+module.exports.WG_SRV_MTU = process.env.WG_SRV_MTU || '1420';
 module.exports.WG_PERSISTENT_KEEPALIVE = process.env.WG_PERSISTENT_KEEPALIVE || '0';
 module.exports.WG_DEFAULT_ADDRESS = process.env.WG_DEFAULT_ADDRESS || '10.8.0.x';
 module.exports.WG_DEFAULT_ADDRESS6 = process.env.WG_DEFAULT_ADDRESS6 || 'fdcc:ad94:bacf:61a4::cafe:x';

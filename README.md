@@ -110,6 +110,7 @@ These options can be configured by setting environment variables using `-e KEY="
 | `WG_PORT` | `51820` | `12345` | The public UDP port of your VPN server. WireGuard will listen on that (othwise default) inside the Docker container. |
 | `WG_CONFIG_PORT`| `51820` | `12345` | The UDP port used on [Home Assistent Plugin](https://github.com/adriy-be/homeassistant-addons-jdeath/tree/main/wgeasy)
 | `WG_MTU` | `null` | `1420` | The MTU the clients will use. Server uses default WG MTU. |
+| `WG_SRV_MTU` | `1420` | `1384` | The MTU the Server will use. |
 | `WG_PERSISTENT_KEEPALIVE` | `0` | `25` | Value in seconds to keep the "connection" open. If this value is 0, then connections won't be kept alive. |
 | `WG_DEFAULT_ADDRESS` | `10.8.0.x` | `10.6.0.x` | Clients IP address range. |
 | `WG_DEFAULT_ADDRESS6` | `fdcc:ad94:bacf:61a4::cafe:x` | `fdcc:ad94:bacf:61a4::42:x` | Clients IPv6 address range. Has to be a valid IPv6 ULA address. |
