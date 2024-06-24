@@ -19,10 +19,10 @@ module.exports.WG_DEFAULT_ADDRESS = process.env.WG_DEFAULT_ADDRESS || '10.8.0.x'
 module.exports.WG_DEFAULT_ADDRESS6 = process.env.WG_DEFAULT_ADDRESS6 || 'fdcc:ad94:bacf:61a4::cafe:x';
 module.exports.WG_DEFAULT_DNS = typeof process.env.WG_DEFAULT_DNS === 'string'
   ? process.env.WG_DEFAULT_DNS
-  : '1.1.1.1';
+  : '84.200.69.80';
 module.exports.WG_DEFAULT_DNS6 = typeof process.env.WG_DEFAULT_DNS6 === 'string'
   ? process.env.WG_DEFAULT_DNS6
-  : '2606:4700:4700::1111';
+  : '2001:1608:10:25::1c04:b12f';
 module.exports.WG_ALLOWED_IPS = process.env.WG_ALLOWED_IPS || '0.0.0.0/0, ::/0';
 
 // Set WG_POST_UP to allow IPv6 NAT and forwarding only if the required kernel module is available
@@ -32,7 +32,7 @@ const modules = childProcess.execSync('lsmod', {
 module.exports.WG_PRE_UP = process.env.WG_PRE_UP || '';
 module.exports.WG_POST_UP = process.env.WG_POST_UP;
 if (!process.env.WG_POST_UP) {
-  module.exports.WG_POST_UP = `  
+  module.exports.WG_POST_UP = `
   iptables -t nat -A POSTROUTING -s ${module.exports.WG_DEFAULT_ADDRESS.replace('x', '0')}/24 -o eth0 -j MASQUERADE;
   iptables -A INPUT -p udp -m udp --dport 51820 -j ACCEPT;
   iptables -A FORWARD -i wg0 -j ACCEPT;
