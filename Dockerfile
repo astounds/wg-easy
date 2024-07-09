@@ -27,7 +27,7 @@ COPY --from=build_node_modules /app /app
 COPY --from=build_node_modules /node_modules /node_modules
 
 # Install Linux packages
-RUN apk add --no-cache \
+RUN apk upgrade && apk add --no-cache \
     dpkg \
     dumb-init \
     ip6tables \
