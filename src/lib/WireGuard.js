@@ -16,13 +16,19 @@ const {
   WG_HOST,
   WG_PORT,
   WG_MTU,
+  WG_SRV_MTU,
   WG_DEFAULT_DNS,
+  WG_DEFAULT_DNS6,
   WG_DEFAULT_ADDRESS_RANGE,
+  WG_DEFAULT_ADDRESS_RANGE6,
   WG_PERSISTENT_KEEPALIVE,
   WG_ALLOWED_IPS,
   WG_SERVER_ADDRESS,
+  WG_SERVER_ADDRESS6,
   WG_CLIENT_FIRST_ADDRESS,
+  WG_CLIENT_FIRST_ADDRESS6,
   WG_CLIENT_LAST_ADDRESS,
+  WG_CLIENT_LAST_ADDRESS6,
   WG_PRE_UP,
   WG_POST_UP,
   WG_PRE_DOWN,
@@ -50,14 +56,18 @@ module.exports = class WireGuard {
             log: 'echo ***hidden*** | wg pubkey',
           });
           const address = WG_SERVER_ADDRESS;
+          const address6 = WG_SERVER_ADDRESS6;
           const cidrBlock = WG_DEFAULT_ADDRESS_RANGE;
+          const cidrBlock6 = WG_DEFAULT_ADDRESS_RANGE6;
 
           config = {
             server: {
               privateKey,
               publicKey,
               address,
+              address6,
               cidrBlock,
+              cidrBlock6,
             },
             clients: {},
           };
@@ -100,8 +110,9 @@ module.exports = class WireGuard {
 # Server
 [Interface]
 PrivateKey = ${config.server.privateKey}
-Address = ${config.server.address}/${config.server.cidrBlock}
-ListenPort = 51820
+Address = ${config.server.address}/${config.server.cidrBlock}, ${config.server.address6}/${config.server.cidrBlock6}
+${WG_SRV_MTU ? `MTU = ${WG_SRV_MTU}` : ''}
+ListenPort = ${WG_PORT}
 PreUp = ${WG_PRE_UP}
 PostUp = ${WG_POST_UP}
 PreDown = ${WG_PRE_DOWN}
@@ -117,7 +128,7 @@ PostDown = ${WG_POST_DOWN}
 [Peer]
 PublicKey = ${client.publicKey}
 ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
-}AllowedIPs = ${client.address}/32`;
+}AllowedIPs = ${client.address}/32, ${client.address6}/128`;
     }
 
     debug('Config saving...');
@@ -143,7 +154,9 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
       name: client.name,
       enabled: client.enabled,
       address: client.address,
+      address6: client.address6,
       cidrBlock: client.cidrBlock,
+      cidrBlock6: client.cidrBlock6,
       publicKey: client.publicKey,
       createdAt: new Date(client.createdAt),
       updatedAt: new Date(client.updatedAt),
@@ -202,12 +215,16 @@ ${client.preSharedKey ? `PresharedKey = ${client.preSharedKey}\n` : ''
   async getClientConfiguration({ clientId }) {
     const config = await this.getConfig();
     const client = await this.getClient({ clientId });
+    const isDnsSet = WG_DEFAULT_DNS || WG_DEFAULT_DNS6;
+    const dnsServers = [WG_DEFAULT_DNS, WG_DEFAULT_DNS6].filter((item) => !!item).join(', ');
 
     return `
 [Interface]
 PrivateKey = ${client.privateKey ? `${client.privateKey}` : 'REPLACE_ME'}
-Address = ${client.address}/${client.cidrBlock}
-${WG_DEFAULT_DNS ? `DNS = ${WG_DEFAULT_DNS}\n` : ''}\
+Address = ${client.address}/${config.server.cidrBlock}, ${client.address6}/${config.server.cidrBlock6}
+ListenPort = ${WG_PORT}
+${isDnsSet ? `DNS = ${dnsServers}\n` : ''}\
+
 ${WG_MTU ? `MTU = ${WG_MTU}\n` : ''}\
 
 [Peer]
@@ -237,7 +254,7 @@ Endpoint = ${WG_HOST}:${WG_PORT}`;
     const publicKey = await Util.exec(`echo ${privateKey} | wg pubkey`);
     const preSharedKey = await Util.exec('wg genpsk');
 
-    // find next IP
+    // find next IPv4
     let address;
     for (let i = WG_CLIENT_FIRST_ADDRESS; i <= WG_CLIENT_LAST_ADDRESS; i++) {
       const currentIp = ip.fromLong(i);
@@ -255,14 +272,36 @@ Endpoint = ${WG_HOST}:${WG_PORT}`;
       throw new Error('Maximum number of clients reached.');
     }
 
+    // find next IPv6
+    let address6;
+    for (let i = WG_CLIENT_FIRST_ADDRESS6; i <= WG_CLIENT_LAST_ADDRESS6; i++) {
+      const commonPrefix = WG_SERVER_ADDRESS6.split('::')[0] + '::';
+      const currentIp = `${commonPrefix}${i}`;
+      const client = Object.values(config.clients).find((client) => {
+        return client.address6 === currentIp;
+      });
+
+      if (!client) {
+        address6 = currentIp;
+        break;
+      }
+    }
+
+    if (!address6) {
+      throw new Error('Maximum number of clients reached.');
+    }
+
     // Create Client
     const id = uuid.v4();
     const cidrBlock = WG_DEFAULT_ADDRESS_RANGE;
+    const cidrBlock6 = WG_DEFAULT_ADDRESS_RANGE6;
     const client = {
       id,
       name,
       address,
+      address6,
       cidrBlock,
+      cidrBlock6,
       privateKey,
       publicKey,
       preSharedKey,
@@ -320,10 +359,23 @@ Endpoint = ${WG_HOST}:${WG_PORT}`;
     const client = await this.getClient({ clientId });
 
     if (!ip.isV4Format(address)) {
-      throw new ServerError(`Invalid Address: ${address}`, 400);
+      throw new ServerError(`Invalid Address IPv4: ${address}`, 400);
     }
 
     client.address = address;
+    client.updatedAt = new Date();
+
+    await this.saveConfig();
+  }
+
+  async updateClientAddress6({ clientId, address6 }) {
+    const client = await this.getClient({ clientId });
+
+    if (!ip.isV6Format(address6)) {
+      throw new ServerError(`Invalid Address IPv6: ${address6}`, 400);
+    }
+
+    client.address6 = address6;
     client.updatedAt = new Date();
 
     await this.saveConfig();
